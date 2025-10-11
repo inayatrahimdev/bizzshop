@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Product Images</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .image-item {
+            text-align: center;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+
+        .image-item canvas {
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+        }
+
+        .download-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .download-btn:hover {
+            background: #0056b3;
+        }
+
+        .generate-all {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .generate-all:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Shop.PK Product Image Generator</h1>
+        <p>This tool generates placeholder product images for your e-commerce website.</p>
+
+        <button class="generate-all" onclick="generateAllImages()">Generate All 20 Product Images</button>
+
+        <div class="image-grid" id="imageGrid">
+            <!-- Images will be generated here -->
+        </div>
+    </div>
+
+    <script>
+        const products = [
+            { name: 'iPhone 15 Pro Max', color: '#007AFF' },
+            { name: 'Samsung Galaxy S24 Ultra', color: '#1E88E5' },
+            { name: 'MacBook Pro M3', color: '#424242' },
+            { name: 'iPad Air 5th Gen', color: '#E53935' },
+            { name: 'Sony WH-1000XM5', color: '#000000' },
+            { name: 'Dell XPS 13', color: '#00BCD4' },
+            { name: 'AirPods Pro 2nd Gen', color: '#FFFFFF' },
+            { name: 'Nintendo Switch OLED', color: '#E91E63' },
+            { name: 'Canon EOS R6 Mark II', color: '#FF5722' },
+            { name: 'LG OLED C3 55"', color: '#795548' },
+            { name: 'Nike Air Max 270', color: '#FF9800' },
+            { name: 'Adidas Ultraboost 22', color: '#4CAF50' },
+            { name: 'Levi\'s 501 Original Jeans', color: '#2196F3' },
+            { name: 'Uniqlo Heattech T-Shirt', color: '#607D8B' },
+            { name: 'Zara Blazer', color: '#9C27B0' },
+            { name: 'KitchenAid Stand Mixer', color: '#F44336' },
+            { name: 'Dyson V15 Detect', color: '#FFC107' },
+            { name: 'Instant Pot Duo', color: '#8BC34A' },
+            { name: 'Philips Hue Starter Kit', color: '#FFEB3B' },
+            { name: 'IKEA MALM Bed Frame', color: '#795548' }
+        ];
+
+        function generateAllImages() {
+            const imageGrid = document.getElementById('imageGrid');
+            imageGrid.innerHTML = '';
+
+            products.forEach((product, index) => {
+                generateImage(index + 1, product.name, product.color);
+            });
+        }
+
+        function generateImage(imageNumber, productName, backgroundColor) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 300;
+            canvas.height = 300;
+            const ctx = canvas.getContext('2d');
+
+            // Background
+            ctx.fillStyle = backgroundColor;
+            ctx.fillRect(0, 0, 300, 300);
+
+            // Border
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(1, 1, 298, 298);
+
+            // Product icon
+            ctx.fillStyle = '#fff';
+            ctx.font = '60px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('📱', 150, 120);
+
+            // Product name
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText(productName, 150, 180);
+
+            // Price placeholder
+            ctx.fillStyle = '#666';
+            ctx.font = '14px Arial';
+            ctx.fillText('Rs. XXX,XXX', 150, 200);
+
+            // Create container
+            const container = document.createElement('div');
+            container.className = 'image-item';
+
+            container.innerHTML = `
+                <canvas width="150" height="150"></canvas>
+                <div>${productName}</div>
+                <button class="download-btn" onclick="downloadImage(${imageNumber}, '${productName}', '${backgroundColor}')">
+                    Download prod${imageNumber}.png
+                </button>
+            `;
+
+            // Copy canvas to smaller size
+            const smallCanvas = container.querySelector('canvas');
+            const smallCtx = smallCanvas.getContext('2d');
+            smallCtx.drawImage(canvas, 0, 0, 150, 150);
+
+            document.getElementById('imageGrid').appendChild(container);
+        }
+
+        function downloadImage(imageNumber, productName, backgroundColor) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 300;
+            canvas.height = 300;
+            const ctx = canvas.getContext('2d');
+
+            // Background
+            ctx.fillStyle = backgroundColor;
+            ctx.fillRect(0, 0, 300, 300);
+
+            // Border
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(1, 1, 298, 298);
+
+            // Product icon
+            ctx.fillStyle = '#fff';
+            ctx.font = '60px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('📱', 150, 120);
+
+            // Product name
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText(productName, 150, 180);
+
+            // Price placeholder
+            ctx.fillStyle = '#666';
+            ctx.font = '14px Arial';
+            ctx.fillText('Rs. XXX,XXX', 150, 200);
+
+            // Download
+            const link = document.createElement('a');
+            link.download = `prod${imageNumber}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+    </script>
+</body>
+
+</html>

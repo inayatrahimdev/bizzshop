@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Products API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .product {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        .loading {
+            color: #666;
+        }
+
+        .error {
+            color: red;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🧪 Test Products API</h1>
+    <p>This page tests if the products API is working correctly.</p>
+
+    <button onclick="testProductsAPI()">Test Products API</button>
+
+    <div id="results">
+        <p class="loading">Click the button above to test the products API...</p>
+    </div>
+
+    <script>
+        async function testProductsAPI() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p class="loading">🔄 Testing products API...</p>';
+
+            try {
+                // Test if server is running
+                const response = await fetch('/api/products');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const products = await response.json();
+
+                if (products.length === 0) {
+                    resultsDiv.innerHTML = '<p class="error">❌ No products found in database. Please run the SQL setup script.</p>';
+                    return;
+                }
+
+                let html = `<h2>✅ Products API Working! Found ${products.length} products:</h2>`;
+
+                products.forEach((product, index) => {
+                    html += `
+                        <div class="product">
+                            <h3>${index + 1}. ${product.name}</h3>
+                            <p><strong>Price:</strong> Rs. ${product.price}</p>
+                            <p><strong>Stock:</strong> ${product.stock}</p>
+                            <p><strong>Image:</strong> ${product.image_url}</p>
+                            <p><strong>Description:</strong> ${product.description}</p>
+                        </div>
+                    `;
+                });
+
+                resultsDiv.innerHTML = html;
+
+                // Test first product specifically
+                const firstProduct = products[0];
+                if (firstProduct.name === 'iPhone 15 Pro Max' && firstProduct.price == 20) {
+                    resultsDiv.innerHTML += '<p style="color: green; font-weight: bold;">🎉 Test product (iPhone 15 Pro Max - Rs. 20) is ready for testing!</p>';
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                resultsDiv.innerHTML = `
+                    <p class="error">❌ Error testing products API:</p>
+                    <p class="error">${error.message}</p>
+                    <p class="error">Make sure:</p>
+                    <ul class="error">
+                        <li>Server is running (npm start)</li>
+                        <li>Database is set up correctly</li>
+                        <li>SQL Server is running</li>
+                    </ul>
+                `;
+            }
+        }
+
+        // Auto-test on page load
+        window.onload = function () {
+            setTimeout(testProductsAPI, 1000);
+        };
+    </script>
+</body>
+
+</html>
