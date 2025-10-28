@@ -1,6 +1,8 @@
 const express = require("express");
 const sql = require("mssql");
+const { MongoClient } = require("mongodb");
 const path = require("path");
+const fs = require("fs");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -15,59 +17,139 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static("public"));
 
-// Database configuration - read from env; Azure-friendly defaults
-const dbConfig = {
+// Database configuration for MSSQL (fallback option)
+const mssqlConfig = {
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     server: process.env.DB_SERVER,
     database: process.env.DB_NAME || process.env.DB_DATABASE,
     options: {
-        // For Azure SQL you typically want encrypt:true and trustServerCertificate:false
         encrypt: (process.env.DB_ENCRYPT === 'true') || true,
         trustServerCertificate: (process.env.DB_TRUST_CERTIFICATE === 'true') || false,
     },
 };
 
+// Cache fixture data at startup
+let fixtureProducts = null;
+function loadFixtureProducts() {
+    if (fixtureProducts) return fixtureProducts;
+    try {
+        const fallbackPath = path.join(__dirname, 'database', 'products-fixture.json');
+        const data = fs.readFileSync(fallbackPath, 'utf8');
+        fixtureProducts = JSON.parse(data);
+        return Array.isArray(fixtureProducts) ? fixtureProducts : [];
+    } catch (err) {
+        console.error('❌ Failed to load fixture products:', err.message);
+        return [];
+    }
+}
+
+// MongoDB/Cosmos DB connection
+let mongoClient = null;
+let mongoDb = null;
+
+async function connectMongo() {
+    if (mongoClient) return mongoDb;
+    
+    const mongoUri = process.env.MONGO_URI;
+    const dbName = process.env.MONGO_DB_NAME || 'bizzshop';
+    
+    if (!mongoUri) return null;
+    
+    try {
+        mongoClient = new MongoClient(mongoUri);
+        await mongoClient.connect();
+        mongoDb = mongoClient.db(dbName);
+        console.log('✅ Connected to Azure Cosmos DB (MongoDB API)');
+        return mongoDb;
+    } catch (error) {
+        console.warn('⚠️  Failed to connect to MongoDB/Cosmos DB:', error.message);
+        mongoClient = null;
+        mongoDb = null;
+        return null;
+    }
+}
+
 // Basic health check route
 app.get('/health', (req, res) => res.status(200).send({ status: 'ok' }));
 
-// Robust products endpoint with DB attempt and fixture fallback
-app.get('/api/products', async (req, res) => {
-  try {
-    // If DB credentials are not provided, skip DB attempt and return fixture
-    if (!dbConfig.server || !dbConfig.user || !dbConfig.password) {
-      console.warn('DB config missing - serving fixture products');
-      const fallbackPath = path.join(__dirname, 'database', 'products-fixture.json');
-      const fallback = require(fallbackPath);
-      return res.status(200).json(Array.isArray(fallback) ? fallback : []);
-    }
-
-    // Attempt to connect to DB and fetch products
-    const pool = await sql.connect(dbConfig);
-    const result = await pool.request().query(
-      'SELECT id, name, description, price, stock, image_url, category FROM products'
-    );
-    const products = result && result.recordset ? result.recordset : [];
-    return res.status(200).json(products);
-  } catch (err) {
-    console.error('Products endpoint DB error:', err && err.message ? err.message : err);
-
-    // Dev/production-safe fallback: return fixture JSON so frontend doesn't break
-    try {
-      const fallbackPath = path.join(__dirname, 'database', 'products-fixture.json');
-      const fallback = require(fallbackPath);
-      return res.status(200).json(Array.isArray(fallback) ? fallback : []);
-    } catch (fallbackErr) {
-      console.error('Products fallback read error:', fallbackErr);
-      return res.status(500).json({ error: 'Unable to load products' });
-    }
-  }
+// Serve test_products.html
+app.get('/test_products.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'test_products.html'));
 });
 
-// Keep other existing routes here (auth/admin/order etc.) if present in original server.js
+// Robust products endpoint: prefer Cosmos DB, fallback to MSSQL, final fallback to fixture JSON
+app.get('/api/products', async (req, res) => {
+    try {
+        // 1. Try Azure Cosmos DB (MongoDB API) first if MONGO_URI is configured
+        if (process.env.MONGO_URI) {
+            try {
+                const db = await connectMongo();
+                if (db) {
+                    const products = await db.collection('products').find({}).toArray();
+                    console.log(`📦 Served ${products.length} products from Cosmos DB`);
+                    return res.status(200).json(products);
+                }
+            } catch (mongoErr) {
+                console.warn('⚠️  Cosmos DB query failed:', mongoErr.message);
+            }
+        }
+
+        // 2. Fallback to MSSQL if configured
+        if (mssqlConfig.server && mssqlConfig.user && mssqlConfig.password) {
+            try {
+                const pool = await sql.connect(mssqlConfig);
+                const result = await pool.request().query(
+                    'SELECT id, name, description, price, stock, image_url, category FROM products'
+                );
+                const products = result && result.recordset ? result.recordset : [];
+                console.log(`📦 Served ${products.length} products from MSSQL`);
+                return res.status(200).json(products);
+            } catch (sqlErr) {
+                console.warn('⚠️  MSSQL query failed:', sqlErr.message);
+            }
+        }
+
+        // 3. Final fallback: serve fixture JSON
+        console.warn('⚠️  No database configured - serving fixture products');
+        const fallbackProducts = loadFixtureProducts();
+        return res.status(200).json(fallbackProducts);
+
+    } catch (err) {
+        console.error('❌ Products endpoint error:', err.message);
+
+        // Ultimate fallback: try fixture
+        const fallbackProducts = loadFixtureProducts();
+        if (fallbackProducts.length > 0) {
+            return res.status(200).json(fallbackProducts);
+        }
+        return res.status(500).json({ error: 'Unable to load products' });
+    }
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+    console.log('\n🛑 Shutting down gracefully...');
+    if (mongoClient) {
+        await mongoClient.close();
+        console.log('🔌 Closed MongoDB connection');
+    }
+    process.exit(0);
+});
 
 // Ensure server listens on the environment port (Azure requirement)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📍 Health check: http://localhost:${PORT}/health`);
+    console.log(`📍 Products API: http://localhost:${PORT}/api/products`);
+    console.log(`📍 Test page: http://localhost:${PORT}/test_products.html`);
+    
+    if (process.env.MONGO_URI) {
+        console.log('🌍 Cosmos DB (MONGO_URI) configured - will try Cosmos DB first');
+    } else if (mssqlConfig.server) {
+        console.log('🗄️  MSSQL configured - will use MSSQL');
+    } else {
+        console.log('📄 No database configured - using fixture fallback');
+    }
 });

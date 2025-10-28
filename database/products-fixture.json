@@ -1,0 +1,74 @@
+[
+  {
+    "id": 1,
+    "name": "iPhone 15 Pro Max",
+    "description": "Latest Apple flagship with A17 Pro chip, titanium design, and pro camera system",
+    "price": 449999,
+    "stock": 15,
+    "image_url": "iphone15.jpg",
+    "category": "Smartphones"
+  },
+  {
+    "id": 2,
+    "name": "Samsung Galaxy S24 Ultra",
+    "description": "Premium Android flagship with S Pen, 200MP camera, and AI features",
+    "price": 429999,
+    "stock": 12,
+    "image_url": "s24ultra.jpg",
+    "category": "Smartphones"
+  },
+  {
+    "id": 3,
+    "name": "MacBook Pro 14\" M3",
+    "description": "Powerful laptop with M3 chip, liquid retina display, and all-day battery",
+    "price": 599999,
+    "stock": 8,
+    "image_url": "macbookpro14.jpg",
+    "category": "Laptops"
+  },
+  {
+    "id": 4,
+    "name": "Dell XPS 15",
+    "description": "Premium Windows laptop with Intel i9, NVIDIA RTX graphics",
+    "price": 399999,
+    "stock": 10,
+    "image_url": "dellxps15.jpg",
+    "category": "Laptops"
+  },
+  {
+    "id": 5,
+    "name": "Sony WH-1000XM5",
+    "description": "Industry-leading noise canceling headphones with premium sound quality",
+    "price": 84999,
+    "stock": 25,
+    "image_url": "sonywh1000xm5.jpg",
+    "category": "Audio"
+  },
+  {
+    "id": 6,
+    "name": "AirPods Pro (2nd Gen)",
+    "description": "Premium wireless earbuds with active noise cancellation and spatial audio",
+    "price": 64999,
+    "stock": 30,
+    "image_url": "airpodspro.jpg",
+    "category": "Audio"
+  },
+  {
+    "id": 7,
+    "name": "iPad Air M2",
+    "description": "Powerful tablet with M2 chip, stunning display, and Apple Pencil support",
+    "price": 179999,
+    "stock": 18,
+    "image_url": "ipadair.jpg",
+    "category": "Tablets"
+  },
+  {
+    "id": 8,
+    "name": "Samsung Tab S9",
+    "description": "Premium Android tablet with AMOLED display and S Pen included",
+    "price": 169999,
+    "stock": 14,
+    "image_url": "tabs9.jpg",
+    "category": "Tablets"
+  }
+]
