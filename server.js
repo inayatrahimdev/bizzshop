@@ -2,6 +2,7 @@ const express = require("express");
 const sql = require("mssql");
 const { MongoClient } = require("mongodb");
 const path = require("path");
+const fs = require("fs");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -27,6 +28,21 @@ const mssqlConfig = {
         trustServerCertificate: (process.env.DB_TRUST_CERTIFICATE === 'true') || false,
     },
 };
+
+// Cache fixture data at startup
+let fixtureProducts = null;
+function loadFixtureProducts() {
+    if (fixtureProducts) return fixtureProducts;
+    try {
+        const fallbackPath = path.join(__dirname, 'database', 'products-fixture.json');
+        const data = fs.readFileSync(fallbackPath, 'utf8');
+        fixtureProducts = JSON.parse(data);
+        return Array.isArray(fixtureProducts) ? fixtureProducts : [];
+    } catch (err) {
+        console.error('❌ Failed to load fixture products:', err.message);
+        return [];
+    }
+}
 
 // MongoDB/Cosmos DB connection
 let mongoClient = null;
@@ -96,22 +112,18 @@ app.get('/api/products', async (req, res) => {
 
         // 3. Final fallback: serve fixture JSON
         console.warn('⚠️  No database configured - serving fixture products');
-        const fallbackPath = path.join(__dirname, 'database', 'products-fixture.json');
-        const fallback = require(fallbackPath);
-        return res.status(200).json(Array.isArray(fallback) ? fallback : []);
+        const fallbackProducts = loadFixtureProducts();
+        return res.status(200).json(fallbackProducts);
 
     } catch (err) {
         console.error('❌ Products endpoint error:', err.message);
 
         // Ultimate fallback: try fixture
-        try {
-            const fallbackPath = path.join(__dirname, 'database', 'products-fixture.json');
-            const fallback = require(fallbackPath);
-            return res.status(200).json(Array.isArray(fallback) ? fallback : []);
-        } catch (fallbackErr) {
-            console.error('❌ Products fallback read error:', fallbackErr.message);
-            return res.status(500).json({ error: 'Unable to load products' });
+        const fallbackProducts = loadFixtureProducts();
+        if (fallbackProducts.length > 0) {
+            return res.status(200).json(fallbackProducts);
         }
+        return res.status(500).json({ error: 'Unable to load products' });
     }
 });
 
